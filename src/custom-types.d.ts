@@ -42,12 +42,6 @@ export type LinkElement = { type: 'link'; url: string; children: Descendant[] }
 
 export type ListItemElement = { type: 'list-item'; children: Descendant[] }
 
-export type MentionElement = {
-  type: 'mention'
-  character: string
-  children: CustomText[]
-}
-
 export type DynamicContentElement = {
   type: 'dc'
   dc: { type: 'var', name: string }
@@ -72,7 +66,6 @@ type CustomElement =
   | ImageElement
   | LinkElement
   | ListItemElement
-  | MentionElement
   | DynamicContentElement
   | ParagraphElement
   | TableCellElement
