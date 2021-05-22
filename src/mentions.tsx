@@ -162,8 +162,21 @@ const withDynamicContent = (editor: CustomTypes['Editor']) => {
 }
 
 const insertDynamicContent = (editor: CustomTypes['Editor'], name: string) => {
+  console.log(editor)
+  const x = Editor.nodes<DynamicContentElement>(
+    editor,
+    {
+      reverse: true,
+      match: (n, p) => {
+        console.log(111, n, p)
+        return true
+      }
+    }
+  )
+  console.log([...x])
   const dc: DynamicContentElement = {
     type: 'dc',
+    uid: 100,
     dc: {
       type: 'var',
       name
@@ -217,6 +230,7 @@ const initialValue: Descendant[] = [
       { text: 'Try mentioning characters, like ' },
       {
         type: 'dc',
+        uid: 2,
         dc: {
           type: 'var',
           name: 'seven'
@@ -226,6 +240,7 @@ const initialValue: Descendant[] = [
       { text: ' or ' },
       {
         type: 'dc',
+        uid: 1,
         dc: {
           type: 'var',
           name: 'six'

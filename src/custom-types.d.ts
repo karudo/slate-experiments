@@ -44,6 +44,7 @@ export type ListItemElement = { type: 'list-item'; children: Descendant[] }
 
 export type DynamicContentElement = {
   type: 'dc'
+  uid: number
   dc: { type: 'var', name: string }
   children: EmptyText[]
 }
