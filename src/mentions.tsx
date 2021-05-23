@@ -1,4 +1,5 @@
 import React, {useMemo, useCallback, useRef, useEffect, useState, FC, useDebugValue} from 'react'
+import { max } from 'lodash'
 import {createPortal} from 'react-dom';
 import {Editor, Transforms, Range, createEditor, Descendant, CustomTypes} from 'slate'
 import { withHistory } from 'slate-history'
@@ -11,7 +12,7 @@ import {
   useFocused,
 } from 'slate-react'
 
-import {DynamicContentElement} from './custom-types'
+import {CustomElement, DynamicContentElement} from './custom-types'
 
 export const Portal: FC = ({ children }) => {
   return typeof document === 'object'
@@ -24,6 +25,28 @@ const vars = [
   'lopata',
   'brevno'
 ]
+
+function isElement(x: any): x is CustomElement {
+  return !!x.type;
+}
+
+function findAllDc(value: Descendant[]): DynamicContentElement[] {
+  const dces: DynamicContentElement[] = [];
+
+  function walkDeep(children: Descendant[]) {
+    for (const el of children) {
+      if (isElement(el)) {
+        if (el.type === 'dc') {
+          dces.push(el);
+        }
+        walkDeep(el.children);
+      }
+    }
+  }
+  walkDeep(value);
+
+  return dces;
+}
 
 const MentionExample = () => {
   const ref = useRef<HTMLDivElement>(null)
@@ -53,7 +76,7 @@ const MentionExample = () => {
           case 'Enter':
             event.preventDefault()
             Transforms.select(editor, target)
-            insertDynamicContent(editor, vars[index])
+            insertDynamicContent(editor, value, vars[index])
             setTarget(undefined)
             break
           case 'Escape':
@@ -113,6 +136,7 @@ const MentionExample = () => {
         onKeyDown={onKeyDown}
         placeholder="Enter some text..."
       />
+      <pre>{JSON.stringify(value, null, 2)}</pre>
       {target && (
         <Portal>
           <div
@@ -161,22 +185,11 @@ const withDynamicContent = (editor: CustomTypes['Editor']) => {
   return editor
 }
 
-const insertDynamicContent = (editor: CustomTypes['Editor'], name: string) => {
-  console.log(editor)
-  const x = Editor.nodes<DynamicContentElement>(
-    editor,
-    {
-      reverse: true,
-      match: (n, p) => {
-        console.log(111, n, p)
-        return true
-      }
-    }
-  )
-  console.log([...x])
+const insertDynamicContent = (editor: CustomTypes['Editor'], state: Descendant[], name: string) => {
+  const maxId = max(findAllDc(state).map(dc => dc.uid)) || 0;
   const dc: DynamicContentElement = {
     type: 'dc',
-    uid: 100,
+    uid: maxId + 1,
     dc: {
       type: 'var',
       name
@@ -205,7 +218,8 @@ const DynamicContent: FC<{attributes: any; element: DynamicContentElement}> = ({
       {...attributes}
       contentEditable={false}
       style={{
-        boxShadow: selected && focused ? '0 0 0 2px #B4D5FF' : 'none',
+        boxShadow: selected && focused ? '0 0 0 2px #FFD5FF' : '0 0 0 1px #B4D5FF',
+        cursor: 'pointer'
       }}
     >
       {element.dc.name}
