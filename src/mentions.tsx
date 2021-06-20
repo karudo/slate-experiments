@@ -1,4 +1,4 @@
-import React, {useMemo, useCallback, useRef, useEffect, useState, FC, useDebugValue} from 'react'
+import React, {useCallback, useRef, useEffect, useState, FC} from 'react'
 import { max } from 'lodash'
 import {createPortal} from 'react-dom';
 import {Editor, Transforms, Range, createEditor, Descendant, CustomTypes} from 'slate'
@@ -13,6 +13,8 @@ import {
 } from 'slate-react'
 
 import {CustomElement, DynamicContentElement} from './custom-types'
+
+import { QweHolder } from './hooktests';
 
 export const Portal: FC = ({ children }) => {
   return typeof document === 'object'
@@ -48,13 +50,16 @@ function findAllDc(value: Descendant[]): DynamicContentElement[] {
   return dces;
 }
 
+const createMKEditor = () => withDynamicContent(withReact(withHistory(createEditor())));
+
 const MentionExample = () => {
   const ref = useRef<HTMLDivElement>(null)
   const [value, setValue] = useState<Descendant[]>(initialValue)
   const [target, setTarget] = useState<Range | undefined>()
+  const [targetCoords, setTargetCoords] = useState<{ top: number; left: number } | undefined>()
   const [index, setIndex] = useState(0)
   const renderElement = useCallback(props => <Element {...props} />, [])
-  const [editor] = useState(() => withDynamicContent(withReact(withHistory(createEditor()))))
+  const [editor] = useState(createMKEditor)
 
   // const chars = CHARACTERS.slice(0, 10)
 
@@ -91,11 +96,14 @@ const MentionExample = () => {
 
   useEffect(() => {
     if (target) {
-      const el = ref.current as HTMLDivElement
       const domRange = ReactEditor.toDOMRange(editor, target)
       const rect = domRange.getBoundingClientRect()
-      el.style.top = `${rect.top + window.pageYOffset + 24}px`
-      el.style.left = `${rect.left + window.pageXOffset}px`
+      setTargetCoords({
+        top: rect.top + window.pageYOffset + 24,
+        left: rect.left + window.pageXOffset
+      })
+    } else {
+      setTargetCoords(undefined);
     }
   }, [editor, index, target])
 
@@ -108,18 +116,22 @@ const MentionExample = () => {
         const { selection } = editor
 
         if (selection && Range.isCollapsed(selection)) {
-          const [start] = Range.edges(selection)
+          const [start, end] = Range.edges(selection)
           const charBefore = Editor.end(editor, start)
           const before = charBefore && Editor.before(editor, charBefore)
           const beforeRange = before && Editor.range(editor, before, start)
           const beforeText = beforeRange && Editor.string(editor, beforeRange)
+
+          /*
           console.log({
             start,
+            end,
             charBefore,
             before,
             beforeRange,
             beforeText,
           })
+          */
 
           if (beforeText === '$') {
             setTarget(beforeRange)
@@ -137,13 +149,13 @@ const MentionExample = () => {
         placeholder="Enter some text..."
       />
       <pre>{JSON.stringify(value, null, 2)}</pre>
-      {target && (
+      <QweHolder />
+      {targetCoords && (
         <Portal>
           <div
             ref={ref}
             style={{
-              top: '-9999px',
-              left: '-9999px',
+              ...targetCoords,
               position: 'absolute',
               zIndex: 1,
               padding: '3px',
@@ -234,7 +246,16 @@ const initialValue: Descendant[] = [
     children: [
       {
         text:
-          'This example shows how you might implement a simple $-mentions feature that lets users autocomplete mentioning a user by their username. Which, in this case means Star Wars characters. The mentions are rendered as void inline elements inside the document.',
+          'This example shows how you might implement a simple $-mentions feature that lets users autocomplete mentioning a user by their username. Which, in this case means Star Wars characters.',
+      },
+    ],
+  },
+  {
+    type: 'paragraph',
+    children: [
+      {
+        text:
+          'This example shows how you might implement a simple $-mentions feature that lets users autocomplete mentioning a user by their username. Which, in this case means Star Wars characters.',
       },
     ],
   },
@@ -244,7 +265,7 @@ const initialValue: Descendant[] = [
       { text: 'Try mentioning characters, like ' },
       {
         type: 'dc',
-        uid: 2,
+        uid: 21,
         dc: {
           type: 'var',
           name: 'seven'
@@ -254,7 +275,7 @@ const initialValue: Descendant[] = [
       { text: ' or ' },
       {
         type: 'dc',
-        uid: 1,
+        uid: 22,
         dc: {
           type: 'var',
           name: 'six'
