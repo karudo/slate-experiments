@@ -1,6 +1,6 @@
-import React, {useEffect, useLayoutEffect, useState} from 'react';
+import React, {PropsWithChildren, useEffect, useLayoutEffect, useState} from 'react';
 
-class Qwe extends React.Component<{ n: number }, any> {
+class Qwe extends React.Component<PropsWithChildren<{ n: number }>, any> {
   componentDidMount() {
     console.log(`didMount ${this.props.n}`)
   }

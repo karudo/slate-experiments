@@ -1,4 +1,4 @@
-import React, {useCallback, useRef, useEffect, useState, FC} from 'react'
+import React, {useCallback, useRef, useEffect, useState, FC, PropsWithChildren, KeyboardEventHandler} from 'react'
 import { max } from 'lodash'
 import {createPortal} from 'react-dom';
 import {Editor, Transforms, Range, createEditor, Descendant, CustomTypes} from 'slate'
@@ -16,7 +16,7 @@ import {CustomElement, DynamicContentElement} from './custom-types'
 
 import { QweHolder } from './hooktests';
 
-export const Portal: FC = ({ children }) => {
+export const Portal: FC<PropsWithChildren<{}>> = ({ children }) => {
   return typeof document === 'object'
     ? createPortal(children, document.body)
     : null
@@ -58,13 +58,13 @@ const MentionExample = () => {
   const [target, setTarget] = useState<Range | undefined>()
   const [targetCoords, setTargetCoords] = useState<{ top: number; left: number } | undefined>()
   const [index, setIndex] = useState(0)
-  const renderElement = useCallback(props => <Element {...props} />, [])
+  const renderElement = useCallback((props: any) => <Element {...props} />, [])
   const [editor] = useState(createMKEditor)
 
   // const chars = CHARACTERS.slice(0, 10)
 
-  const onKeyDown = useCallback(
-    event => {
+  const onKeyDown = useCallback<KeyboardEventHandler<HTMLDivElement>>(
+    (event) => {
       if (target) {
         switch (event.key) {
           case 'ArrowDown':
@@ -81,7 +81,7 @@ const MentionExample = () => {
           case 'Enter':
             event.preventDefault()
             Transforms.select(editor, target)
-            insertDynamicContent(editor, value, vars[index])
+            insertDynamicContent(editor, vars[index])
             setTarget(undefined)
             break
           case 'Escape':
@@ -149,7 +149,6 @@ const MentionExample = () => {
         placeholder="Enter some text..."
       />
       <pre>{JSON.stringify(value, null, 2)}</pre>
-      <QweHolder />
       {targetCoords && (
         <Portal>
           <div
@@ -164,16 +163,19 @@ const MentionExample = () => {
               boxShadow: '0 1px 5px rgba(0,0,0,.2)',
             }}
           >
-            {vars.map((char, i) => (
+            {vars.map((variable, i) => (
               <div
-                key={char}
+                key={variable}
                 style={{
                   padding: '1px 3px',
                   borderRadius: '3px',
                   background: i === index ? '#B4D5FF' : 'transparent',
                 }}
+                onClick={() => {
+                  insertDynamicContent(editor, variable)
+                }}
               >
-                {char}
+                {variable}
               </div>
             ))}
           </div>
@@ -197,8 +199,8 @@ const withDynamicContent = (editor: CustomTypes['Editor']) => {
   return editor
 }
 
-const insertDynamicContent = (editor: CustomTypes['Editor'], state: Descendant[], name: string) => {
-  const maxId = max(findAllDc(state).map(dc => dc.uid)) || 0;
+const insertDynamicContent = (editor: CustomTypes['Editor'], name: string) => {
+  const maxId = max(findAllDc(editor.children).map(dc => dc.uid)) || 0;
   const dc: DynamicContentElement = {
     type: 'dc',
     uid: maxId + 1,
@@ -212,7 +214,7 @@ const insertDynamicContent = (editor: CustomTypes['Editor'], state: Descendant[]
   Transforms.move(editor)
 }
 
-const Element: FC<{attributes: any; element: any;}> = props => {
+const Element: FC<PropsWithChildren<{attributes: any; element: any;}>> = props => {
   const { attributes, children, element } = props
   switch (element.type) {
     case 'dc':
@@ -222,7 +224,7 @@ const Element: FC<{attributes: any; element: any;}> = props => {
   }
 }
 
-const DynamicContent: FC<{attributes: any; element: DynamicContentElement}> = ({ attributes, children, element }) => {
+const DynamicContent: FC<PropsWithChildren<{attributes: any; element: DynamicContentElement}>> = ({ attributes, children, element }) => {
   const selected = useSelected()
   const focused = useFocused()
   return (
